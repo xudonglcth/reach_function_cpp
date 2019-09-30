@@ -10,10 +10,10 @@
 
 using namespace std;
 using Eigen::MatrixXd;
-std::set<int> reach_log(MatrixXd n_delta, MatrixXd delta, set<int> Init);
+std::vector<int> reach_log(MatrixXd n_delta, MatrixXd delta, set<int> Init);
 void test_reach_log(int n);
 std::set<int> reach(std::map<int, std::set<char>>sigma_f, std::map<std::string, std::set<int>> delta, std::set<int>init);
-
+tuple<map<int, set<char>>, map<string, set<int>>, set<int>> delta2trans(MatrixXd m_n_delta, MatrixXd m_delta, set<int>init);
 int main(){
 
     std::map<int, std::set<char>>sigma_f = {
@@ -321,28 +321,26 @@ int main(){
                  0, 0, 0, 0, 0, 0, 9, 0, 0, 0,
                  0, 0, 0, 0, 0, 0, 10, 0, 0, 0;
 
-    //reach_log(n_delta_4, l_delta_4, set<int>{7});
-    auto start  = std::chrono::high_resolution_clock::now();
-    test_reach_log(10000);
-    auto end = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-    cout<<"\n"<<duration.count();
+//    reach_log(n_delta_4, l_delta_4, set<int>{1});
+
+    test_reach_log(20000000);
     return 0;
 }
 
-std::set<int> reach_log(MatrixXd n_delta, MatrixXd delta, set<int> Init) {
-
+std::vector<int> reach_log(MatrixXd n_delta, MatrixXd delta, set<int> Init) {
+    vector<int> x_r_vec;
     set<int> x_r;
-
+    vector<int>::iterator i_xrc;
+    set<int>::iterator i_init;
     if (Init.empty()) {
-
-        return {};
-
+        return x_r_vec;
     }
 
     if (n_delta.maxCoeff() == 0) {
-        return Init;
-
+        for(i_init = Init.begin(); i_init != Init.end(); i_init++){
+            x_r_vec.push_back(*i_init);
+        }
+        return x_r_vec;
     }
 
 //    int n = *Init.rbegin();
@@ -358,20 +356,12 @@ std::set<int> reach_log(MatrixXd n_delta, MatrixXd delta, set<int> Init) {
     for (i_b = b.begin(); i_b != b.end(); i_b++) {
 
         if (Init.find(ii) != Init.end()) {
-
             *i_b = true;
-
         }
-
         ii++;
-
     }
-
     std::vector<bool> bd = b;
-
-
     std::vector<int> x(n, 1);
-
 //    std::vector<int>::iterator i_x;
 
     for (int i_x = 0; i_x < n; i_x++) {
@@ -421,21 +411,18 @@ std::set<int> reach_log(MatrixXd n_delta, MatrixXd delta, set<int> Init) {
     }
 
     x_r = {};
-
-    for (int i_r = 0; i_r < n; i_r++) {
-        if (b[i_r] == true) {
-            std::set<int> temp = {i_r + 1};
-            set_union(x_r.begin(), x_r.end(),
-                      temp.begin(), temp.end(),
-                      inserter(x_r, x_r.end()));
+    for(int i = 0; i < n; i++){
+        if(b[i] == true){
+            x_r_vec.push_back(i + 1);
         }
     }
     set<int>::iterator i_xr;
-    //for(i_xr = x_r.begin(); i_xr != x_r.end(); i_xr++){
-    //   cout<<*i_xr<<" ";
-    //}
-    cout<<"\n"<<x_r.size();
-    return x_r;
+    cout<<x_r_vec.size()<<"\n";
+//    for(i_xrc = x_r_vec.begin(); i_xrc != x_r_vec.end(); i_xrc++){
+//        cout<<*i_xrc<<" ";
+//    }
+//    cout<<"\n";
+    return x_r_vec;
 }
 std::set<int> reach(
         std::map<int, std::set<char>>sigma_f, std::map<std::string, std::set<int>> delta, std::set<int>init){
@@ -515,15 +502,15 @@ std::set<int> reach(
 
     }
 
-    cout<<"Reachable states:\n";
-
-    for(it_r = x_r.begin();it_r != x_r.end(); it_r++){
-
-        cout<<*it_r<<", ";
-
-    }
-
-    cout<<"\n";
+//    cout<<"Reachable states:\n";
+//
+//    for(it_r = x_r.begin();it_r != x_r.end(); it_r++){
+//
+//        cout<<*it_r<<", ";
+//
+//    }
+//
+//    cout<<"\n";
 
     return x_r;
 
@@ -563,5 +550,37 @@ void test_reach_log(int n){
         I(0, i) = 1 + 10*i;
     }
     std::copy(&I(0, 0), &I(0, n - 1) + 1, std::inserter(Init, Init.end()));
-    reach_log(n_delta_q, delta_q, Init);
+    tuple<map<int, set<char>>, map<string, set<int>>, set<int>> result_tuple;
+    map<int, set<char>>sigma_f = get<0>(result_tuple);
+    map<string, set<int>>delta_org = get<1>(result_tuple);
+    reach(sigma_f, delta_org, Init);
+    auto start  = std::chrono::high_resolution_clock::now();
+        reach_log(n_delta_q, delta_q, Init);
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+    cout<<"\n"<<duration.count()<<" ms\n";
 }
+
+tuple<map<int, set<char>>, map<string, set<int>>, set<int>> delta2trans(MatrixXd m_n_delta, MatrixXd m_delta, set<int>init){
+    map<int, set<char>>sigma_f;
+    set<char> event_a = {'a'};
+    map<string, set<int>> delta;
+    vector<set<int>> terminal;
+    set<int> temp_set;
+    long n = m_n_delta.cols();
+    long m = m_delta.rows();
+    MatrixXd temp_col(m_delta.rows(),1);
+    for(int i = 1; i <= n; i++){
+        sigma_f.insert(make_pair(i, event_a));
+    }
+    for(int j = 0; j < n; j++, temp_set.clear()){
+        std::copy(&m_delta(0, j), &m_delta(m - 1, j) + 1, std::inserter(temp_set, temp_set.end()));
+        terminal.push_back(temp_set);
+    }
+    for(int k = 0; k < n; k++){
+        delta.insert(make_pair(to_string(k+1)+","+"a", terminal[k]));
+    }
+    return tuple<map<int, set<char>>, map<string, set<int>>, set<int>>(sigma_f, delta, init);
+}
+
+//void test_n_by_n(MatrixXd)
