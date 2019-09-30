@@ -14,8 +14,10 @@ std::vector<int> reach_log(MatrixXd n_delta, MatrixXd delta, set<int> Init);
 void test_reach_log(int n);
 std::set<int> reach(std::map<int, std::set<char>>sigma_f, std::map<std::string, std::set<int>> delta, std::set<int>init);
 tuple<map<int, set<char>>, map<string, set<int>>, set<int>> delta2trans(MatrixXd m_n_delta, MatrixXd m_delta, set<int>init);
-int main(){
+void test_reach_log_vec(int n);
+std::vector<int> reach_log_vec(vector<int> n_delta, vector<vector<int>> delta, set<int> Init);
 
+int main(){
     std::map<int, std::set<char>>sigma_f = {
 
             {1, {'a'}},
@@ -322,8 +324,9 @@ int main(){
                  0, 0, 0, 0, 0, 0, 10, 0, 0, 0;
 
 //    reach_log(n_delta_4, l_delta_4, set<int>{1});
-
-    test_reach_log(20000000);
+    vector<vector<int>> vec_mat;
+    //test_reach_log(100);
+    test_reach_log_vec(100);
     return 0;
 }
 
@@ -417,7 +420,7 @@ std::vector<int> reach_log(MatrixXd n_delta, MatrixXd delta, set<int> Init) {
         }
     }
     set<int>::iterator i_xr;
-    cout<<x_r_vec.size()<<"\n";
+    //cout<<x_r_vec.size()<<"\n";
 //    for(i_xrc = x_r_vec.begin(); i_xrc != x_r_vec.end(); i_xrc++){
 //        cout<<*i_xrc<<" ";
 //    }
@@ -502,15 +505,6 @@ std::set<int> reach(
 
     }
 
-//    cout<<"Reachable states:\n";
-//
-//    for(it_r = x_r.begin();it_r != x_r.end(); it_r++){
-//
-//        cout<<*it_r<<", ";
-//
-//    }
-//
-//    cout<<"\n";
 
     return x_r;
 
@@ -584,3 +578,156 @@ tuple<map<int, set<char>>, map<string, set<int>>, set<int>> delta2trans(MatrixXd
 }
 
 //void test_n_by_n(MatrixXd)
+std::vector<int> reach_log_vec(vector<int> n_delta, vector<vector<int>> delta, set<int> Init) {
+    vector<int> x_r_vec;
+    set<int> x_r;
+    vector<int>::iterator i_xrc;
+    set<int>::iterator i_init;
+    if (Init.empty()) {
+        return x_r_vec;
+    }
+    auto n_delta_max = *max_element(begin(n_delta), end(n_delta));
+    if (n_delta_max == 0) {
+        for(i_init = Init.begin(); i_init != Init.end(); i_init++){
+            x_r_vec.push_back(*i_init);
+        }
+        return x_r_vec;
+    }
+
+    long n = n_delta.size();
+
+    std::vector<bool> b(n, false);
+    std::vector<bool> bf = b;
+    std::vector<bool>::iterator i_b;
+
+    int ii = 1;
+
+    for (i_b = b.begin(); i_b != b.end(); i_b++) {
+
+        if (Init.find(ii) != Init.end()) {
+            *i_b = true;
+        }
+        ii++;
+    }
+    std::vector<bool> bd = b;
+    std::vector<int> x(n, 1);
+//    std::vector<int>::iterator i_x;
+
+    for (int i_x = 0; i_x < n; i_x++) {
+
+        x[i_x] = i_x + 1;
+
+    }
+
+    std::vector<bool> bd1(n, false);
+
+    std::vector<bool>::iterator i_bd;
+
+    std::vector<bool>::iterator i_bd1;
+
+    int q, ii_bd, ii_n;
+
+    ii_bd = 0;
+
+    while (true) {
+
+        for (bd1 = bf, i_bd = bd.begin(), ii_bd = 0; i_bd != bd.end(); i_bd++, ii_bd++) {
+
+            if (*i_bd == true) {
+
+                q = x[ii_bd];
+
+                for (ii_n = 0; ii_n < n_delta[q - 1]; ii_n++) {
+
+                    bd1[delta[ii_n][q - 1] - 1] = true;
+
+                }
+
+            }
+
+        }
+
+        for (i_bd = bd.begin(), i_bd1 = bd1.begin(), i_b = b.begin(); i_b != b.end(); i_bd++, i_bd1++, i_b++) {
+
+            *i_bd = *i_bd1 && !*i_b;
+
+            *i_b = *i_b || *i_bd;
+
+        }
+
+        if (bd == bf) { break; }
+
+    }
+
+    x_r = {};
+    for(int i = 0; i < n; i++){
+        if(b[i] == true){
+            x_r_vec.push_back(i + 1);
+        }
+    }
+    set<int>::iterator i_xr;
+    cout<<x_r_vec.size()<<"\n";
+//    for(i_xrc = x_r_vec.begin(); i_xrc != x_r_vec.end(); i_xrc++){
+//        cout<<*i_xrc<<" ";
+//    }
+//    cout<<"\n";
+    return x_r_vec;
+}
+
+void test_reach_log_vec(int n){
+    int q = 0;
+    std::set<int> Init;
+    Eigen::MatrixXd n_delta(1, 7);
+    Eigen::MatrixXd delta(4, 7);
+    n_delta<< 2, 1, 1, 2, 1, 1, 4;
+    delta<< 2, 3, 4, 5, 6, 7, 2,
+            3, 0, 0, 7, 0, 0, 8,
+            0, 0, 0, 0, 0, 0, 9,
+            0, 0, 0, 0, 0, 0, 10;
+    Eigen::MatrixXd n_delta_q(1, 10*n);
+    Eigen::MatrixXd delta_q(4, 10*n);
+    Eigen::MatrixXd I(1, n);
+    Eigen::MatrixXd q_add(1, 7);
+
+    n_delta_q = Eigen::MatrixXd::Zero(1, 10*n);
+    delta_q = Eigen::MatrixXd::Zero(4, 10*n);
+    I = Eigen::MatrixXd::Zero(1, n);
+
+    for(int i = 0; i < n; i++, q = q + 10){
+        n_delta_q.block(0, 10*i, 1, 7) = n_delta;
+        delta_q.block(0, 10*i, 1, 7) = delta.block(0, 0, 1, 7);
+        for(int j = 10*i; j < 10*i + 7; j++){
+            delta_q(0, j) += q;
+        }
+        delta_q(1, 10*i) = delta(1, 0) + q;
+        delta_q(1, 10*i + 3) = delta(1, 3) + q;
+        delta_q(1, 10*i + 6) = delta(1, 6) + q;
+        delta_q(2, 10*i + 6) = delta(2, 6) + q;
+        delta_q(3, 10*i + 6) = delta(3, 6) + q;
+        I(0, i) = 1 + 10*i;
+    }
+    vector<int> n_delta_vec;
+    vector<vector<int>> delta_vec;
+    vector<int> element_in_delta;
+    for(int i_vec = 0; i_vec < 10*n; i_vec++){
+        n_delta_vec.push_back(n_delta_q(i_vec));
+    }
+    for(int i_row = 0; i_row < 4; i_row++){
+        for(int i_col = 0; i_col < 10*n; i_col++){
+            element_in_delta.push_back(delta_q(i_row, i_col));
+        }
+        delta_vec.push_back(element_in_delta);
+        element_in_delta.clear();
+    }
+    std::copy(&I(0, 0), &I(0, n - 1) + 1, std::inserter(Init, Init.end()));
+    vector<int> x_vec = reach_log_vec(n_delta_vec, delta_vec, Init);
+    tuple<map<int, set<char>>, map<string, set<int>>, set<int>> result_tuple;
+    map<int, set<char>>sigma_f = get<0>(result_tuple);
+    map<string, set<int>>delta_org = get<1>(result_tuple);
+    reach(sigma_f, delta_org, Init);
+    auto start  = std::chrono::high_resolution_clock::now();
+    reach_log(n_delta_q, delta_q, Init);
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+    //cout<<"\n"<<duration.count()<<" ms\n";
+}
